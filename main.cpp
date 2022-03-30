@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <cassert>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -48,7 +50,7 @@ void Neuron::updateInputWeights(Layer &prevLayer)
 {
     // the weights to be updated are in the Connection container
     // in the neurons in the preceding layer
-    for (unsigned n = 0; n < prevLayer.size(); ++n){
+    for (unsigned n = 0; n < prevLayer.size(); ++n) {
         Neuron &neuron = prevLayer[n];
         double oldDeltaWeight = neuron.m_outputWeights[m_myIndex].deltaWeight;
 
@@ -111,7 +113,7 @@ void Neuron::feedForward(const Layer &prevLayer)
         sum += prevLayer[n].getOutputVal() *
             prevLayer[n].m_outputWeights[m_myIndex].weight;
     }
-    m_outputVal = transferFunction(sum);
+    m_outputVal = Neuron::transferFunction(sum);
 }
 
 Neuron::Neuron(unsigned numOutputs, unsigned myIndex)
@@ -138,8 +140,10 @@ class Net
         vector<Layer> m_layers; // m_layers[layerNum][neuronNum]
         double m_error;
         double m_recentAverageError;
-        double m_recentAverageSmoothingFactor;
+        static double m_recentAverageSmoothingFactor;
 };
+
+double Net::m_recentAverageSmoothingFactor = 100.0;
 
 void Net::getResults(vector<double> &resultVals) const
 {
@@ -150,7 +154,7 @@ void Net::getResults(vector<double> &resultVals) const
     }
 }
 
-void Net::backProp(const vector<double> &inputVals)
+void Net::backProp(const vector<double> &targetVals)
 {
     // calculate overall net error (RMS of output neuron errors)
     Layer &outputLayer = m_layers.back();
@@ -185,7 +189,7 @@ void Net::backProp(const vector<double> &inputVals)
 
     // for all layers from outputs to first hidden layer,
     // update connection weights 
-    for (unsigned layerNum = m_layers[0].size() - 1; layerNum > 0; --layerNum) {
+    for (unsigned layerNum = m_layers.size() - 1; layerNum > 0; --layerNum) {
         Layer &layer = m_layers[layerNum];
         Layer &prevLayer = m_layers[layerNum - 1];
 
@@ -226,11 +230,23 @@ Net::Net(const vector<unsigned> &topology)
             m_layers.back().push_back(Neuron(numOutputs, neuronNum));
             cout << "Made a Neuron" << endl;
         }
+        m_layers.back().back().setOutputVal(1.0);
     }
+}
+
+void showVectorVals(string label, vector<double> &v)
+{
+    cout << label << " ";
+    for (unsigned i = 0; i < v.size(); ++i) {
+        cout << v[i] << " ";
+    }
+
+    cout << endl;
 }
 
 int main()
 {
+    
     // e.g., (3, 2, 1)
     vector<unsigned> topology;
     topology.push_back(3);
@@ -247,3 +263,4 @@ int main()
     vector<double> resultVals;
     myNet.getResults(resultVals);
 }
+
